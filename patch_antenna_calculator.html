@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coaxial-Fed Patch Antenna Calculator</title>
+<meta name="description" content="Rectangular microstrip patch antenna calculator based on Balanis Antenna Theory Ch. 14. Computes W, L, εᵣeff, ΔL, G₁, G₁₂, Rᵢₙ, feed position y₀, bandwidth, and directivity.">
+<style>
+  /* ─── Reset & Base ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #f7f6f3;
+    --surface:  #ffffff;
+    --surface2: #f2f1ee;
+    --border:   rgba(0,0,0,0.10);
+    --border2:  rgba(0,0,0,0.18);
+    --text:     #1a1916;
+    --text2:    #5a5851;
+    --text3:    #9a9890;
+    --amber:    #c07800;
+    --amber-bg: #fff7e6;
+    --teal:     #0d7e6e;
+    --teal-bg:  #e6f6f3;
+    --red:      #b52e2e;
+    --red-bg:   #fdf0f0;
+    --green:    #1e6e3c;
+    --green-bg: #edf7f1;
+    --blue:     #1a5fa8;
+    --blue-bg:  #edf3fc;
+    --radius:   10px;
+    --radius-sm:6px;
+    --mono:     'Courier New', Courier, monospace;
+  }
+  html { font-size: 15px; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* ─── Layout ───────────────────────────────────────────── */
+  .page { max-width: 980px; margin: 0 auto; }
+
+  .masthead {
+    border-bottom: 1.5px solid var(--border2);
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.75rem;
+  }
+  .masthead-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+  .masthead h1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--text);
+  }
+  .masthead .ref {
+    font-size: .78rem;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+  .masthead .subtitle {
+    margin-top: .35rem;
+    font-size: .82rem;
+    color: var(--text2);
+    font-style: italic;
+  }
+
+  .grid { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+
+  /* ─── Cards ─────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+  }
+  .card + .card { margin-top: 1rem; }
+  .card-title {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: .85rem;
+  }
+
+  /* ─── Form ──────────────────────────────────────────────── */
+  .field { margin-bottom: .85rem; }
+  .field:last-of-type { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: .78rem;
+    color: var(--text2);
+    margin-bottom: .28rem;
+    font-family: var(--mono);
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: .42rem .6rem;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-size: .85rem;
+    font-family: var(--mono);
+    background: var(--surface2);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--amber);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(192,120,0,.12);
+  }
+
+  /* ─── Results grid ──────────────────────────────────────── */
+  .sec-h {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-top: 1px solid var(--border);
+    padding-top: .65rem;
+    margin: .9rem 0 .6rem;
+  }
+  .sec-h:first-of-type { margin-top: 0; border-top: none; padding-top: 0; }
+  .mg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .m {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: .55rem .7rem;
+  }
+  .ml { font-size: .7rem; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+  .mv { font-size: 1.05rem; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1.2; }
+  .mu { font-size: .68rem; color: var(--text2); font-family: var(--mono); }
+  .meq { font-size: .62rem; color: var(--text3); font-family: var(--mono); margin-top: 2px; letter-spacing: .02em; }
+
+  /* ─── Status badges ─────────────────────────────────────── */
+  .badge {
+    display: inline-block;
+    font-size: .75rem;
+    padding: .3rem .75rem;
+    border-radius: var(--radius-sm);
+    margin-top: .65rem;
+    font-family: var(--mono);
+    line-height: 1.5;
+  }
+  .badge-ok    { background: var(--green-bg); color: var(--green); border: 1px solid rgba(30,110,60,.18); }
+  .badge-warn  { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(192,120,0,.2); }
+  .badge-err   { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(181,46,46,.18);}
+  .badge-info  { background: var(--blue-bg);  color: var(--blue);  border: 1px solid rgba(26,95,168,.15);}
+
+  /* ─── SVG patch diagram ─────────────────────────────────── */
+  .diagram-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem 1rem .65rem;
+    margin-top: 1rem;
+  }
+  .diagram-title {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: .55rem;
+  }
+
+  /* ─── Equations reference ───────────────────────────────── */
+  .eq-ref {
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+  }
+  .eq-ref h2 {
+    font-size: .9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: .85rem;
+  }
+  .eq-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+  .eq-table th {
+    text-align: left;
+    padding: .3rem .5rem;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border2);
+  }
+  .eq-table td {
+    padding: .38rem .5rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .eq-table tr:last-child td { border-bottom: none; }
+  .eq-table td:first-child { font-family: var(--mono); font-size: .75rem; color: var(--amber); font-weight: 700; white-space: nowrap; }
+  .eq-table td:nth-child(2) { font-family: var(--mono); font-size: .74rem; color: var(--text); }
+  .eq-table td:nth-child(3) { color: var(--text2); font-style: italic; }
+
+  /* ─── Footer ────────────────────────────────────────────── */
+  .footer {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: .72rem;
+    color: var(--text3);
+    font-family: var(--mono);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  /* ─── Responsive ────────────────────────────────────────── */
+  @media (max-width: 680px) {
+    .grid { grid-template-columns: 1fr; }
+    .mg   { grid-template-columns: 1fr 1fr; }
+    .masthead-top { flex-direction: column; }
+  }
+  @media (max-width: 400px) {
+    .mg { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <div class="masthead">
+    <div class="masthead-top">
+      <h1>Coaxial-Fed Patch Antenna Calculator</h1>
+      <span class="ref">Balanis · Antenna Theory · Ch. 14</span>
+    </div>
+    <p class="subtitle">
+      Rectangular microstrip patch · Two-slot transmission-line model ·
+      TM₁₀ resonant mode · Numerical integration for G₁ and G₁₂
+    </p>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── Left column: Inputs ─────────────────────────── -->
+    <div>
+      <div class="card">
+        <div class="card-title">Design parameters</div>
+
+        <div class="field">
+          <label>Substrate preset</label>
+          <select id="preset" onchange="applyPreset()">
+            <option value="">— custom —</option>
+            <option value="4.4,1.6,0.0013">FR4  (εᵣ = 4.4, h = 1.6 mm)</option>
+            <option value="2.2,1.575,0.0009">RT/duroid 5880  (εᵣ = 2.2)</option>
+            <option value="3.55,1.524,0.0037">RO4350B  (εᵣ = 3.55)</option>
+            <option value="2.94,1.524,0.0012">RO3003  (εᵣ = 2.94)</option>
+            <option value="10.2,0.635,0.0023">RT/duroid 6010  (εᵣ = 10.2)</option>
+            <option value="9.8,0.635,0.0002">Alumina 96%  (εᵣ = 9.8)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Resonant frequency fᵣ (GHz)</label>
+          <input type="number" id="fr" value="2.4" min="0.1" max="110" step="0.1" oninput="calc()">
+        </div>
+
+        <div class="field">
+          <label>Relative permittivity εᵣ</label>
+          <input type="number" id="er" value="4.4" min="1.01" max="25" step="0.05" oninput="calc()">
+        </div>
+
+        <div class="field">
+          <label>Substrate height h (mm)</label>
+          <input type="number" id="hh" value="1.6" min="0.01" max="20" step="0.05" oninput="calc()">
+        </div>
+
+        <div class="field">
+          <label>Loss tangent tan δ</label>
+          <input type="number" id="tand" value="0.0013" min="0" max="0.1" step="0.0001" oninput="calc()">
+        </div>
+
+        <div class="field">
+          <label>Feed impedance Z₀ (Ω)</label>
+          <input type="number" id="z0" value="50" min="5" max="300" step="1" oninput="calc()">
+        </div>
+
+        <div id="status-badge"></div>
+      </div>
+
+      <!-- ── Top-view patch diagram ───────────────────── -->
+      <div class="diagram-wrap">
+        <div class="diagram-title">Patch geometry — top view</div>
+        <svg id="psvg" viewBox="0 0 220 130"
+             xmlns="http://www.w3.org/2000/svg"
+             style="width:100%;height:auto;display:block"
+             role="img" aria-label="Top view of rectangular patch showing width W, length L, and feed point y₀">
+          <!-- Substrate -->
+          <rect x="10" y="14" width="200" height="102" rx="4"
+                fill="#edf3fc" stroke="#b3c9e8" stroke-width=".8"/>
+          <text x="110" y="122" text-anchor="middle"
+                font-size="7.5" fill="#6a8ab0" font-family="monospace">substrate (εᵣ)</text>
+          <!-- Patch -->
+          <rect id="p-rect" x="22" y="24" width="176" height="82" rx="2"
+                fill="#fff7e6" stroke="#c07800" stroke-width="1.2"/>
+          <!-- Radiating edge labels -->
+          <text x="22" y="118" font-size="7" fill="#1a5fa8" font-family="monospace">◀ rad.</text>
+          <text x="178" y="118" font-size="7" fill="#1a5fa8" font-family="monospace">rad. ▶</text>
+          <!-- W dimension arrow (left, vertical) -->
+          <line x1="6" y1="24" x2="6" y2="106" stroke="#999" stroke-width=".7"/>
+          <line x1="3" y1="24" x2="9" y2="24" stroke="#999" stroke-width=".7"/>
+          <line x1="3" y1="106" x2="9" y2="106" stroke="#999" stroke-width=".7"/>
+          <text x="6" y="69" text-anchor="middle" font-size="8"
+                fill="#555" font-family="monospace"
+                transform="rotate(-90,6,69)" id="p-W-lbl">W</text>
+          <!-- L dimension arrow (top, horizontal) -->
+          <line x1="22" y1="9" x2="198" y2="9" stroke="#999" stroke-width=".7"/>
+          <line x1="22" y1="6" x2="22" y2="12" stroke="#999" stroke-width=".7"/>
+          <line x1="198" y1="6" x2="198" y2="12" stroke="#999" stroke-width=".7"/>
+          <text x="110" y="7" text-anchor="middle" font-size="8"
+                fill="#555" font-family="monospace" id="p-L-lbl">L</text>
+          <!-- Feed probe line + dot -->
+          <line id="p-feed-v" x1="70" y1="24" x2="70" y2="106"
+                stroke="#c07800" stroke-width=".8" stroke-dasharray="3,2"/>
+          <circle id="p-feed-dot" cx="70" cy="65" r="4.5"
+                  fill="#c07800" stroke="#fff7e6" stroke-width="1.5"/>
+          <text id="p-feed-txt" x="70" y="20" text-anchor="middle"
+                font-size="7" fill="#c07800" font-family="monospace">⊕ probe</text>
+          <!-- y₀ arrow -->
+          <line id="p-y0-line" x1="22" y1="112" x2="66" y2="112"
+                stroke="#c07800" stroke-width=".8"/>
+          <polygon id="p-y0-arr"
+                   points="66,109 70,112 66,115"
+                   fill="#c07800"/>
+          <text id="p-y0-lbl" x="44" y="123" text-anchor="middle"
+                font-size="7.5" fill="#c07800" font-family="monospace">y₀</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ── Right column: Results ─────────────────────── -->
+    <div>
+      <div class="card">
+        <div class="card-title">Computed results</div>
+
+        <div class="sec-h">Patch geometry</div>
+        <div class="mg">
+          <div class="m">
+            <div class="ml">Width W</div>
+            <div><span class="mv" id="oW">—</span> <span class="mu">mm</span></div>
+            <div class="meq">Eq. 14-37</div>
+          </div>
+          <div class="m">
+            <div class="ml">Length L</div>
+            <div><span class="mv" id="oL">—</span> <span class="mu">mm</span></div>
+            <div class="meq">Eq. 14-39</div>
+          </div>
+          <div class="m">
+            <div class="ml">Eff. permittivity εᵣₑff</div>
+            <div><span class="mv" id="oEreff">—</span></div>
+            <div class="meq">Eq. 14-1</div>
+          </div>
+          <div class="m">
+            <div class="ml">Length extension ΔL</div>
+            <div><span class="mv" id="oDL">—</span> <span class="mu">mm</span></div>
+            <div class="meq">Eq. 14-2</div>
+          </div>
+          <div class="m">
+            <div class="ml">W / λ₀</div>
+            <div><span class="mv" id="oWl">—</span></div>
+            <div class="meq">width ratio</div>
+          </div>
+          <div class="m">
+            <div class="ml">L / λ₀</div>
+            <div><span class="mv" id="oLl">—</span></div>
+            <div class="meq">length ratio</div>
+          </div>
+        </div>
+
+        <div class="sec-h">Conductance &amp; impedance</div>
+        <div class="mg">
+          <div class="m">
+            <div class="ml">Rad. conductance G₁</div>
+            <div><span class="mv" id="oG1">—</span> <span class="mu">mS</span></div>
+            <div class="meq">Eq. 14-44 (numerical)</div>
+          </div>
+          <div class="m">
+            <div class="ml">Mutual conductance G₁₂</div>
+            <div><span class="mv" id="oG12">—</span> <span class="mu">mS</span></div>
+            <div class="meq">Eq. 14-47 (numerical)</div>
+          </div>
+          <div class="m">
+            <div class="ml">Edge resistance Rᵢₙ</div>
+            <div><span class="mv" id="oRin">—</span> <span class="mu">Ω</span></div>
+            <div class="meq">Eq. 14-50</div>
+          </div>
+          <div class="m">
+            <div class="ml">Rad. resistance Rᵣₐd</div>
+            <div><span class="mv" id="oRrad">—</span> <span class="mu">Ω</span></div>
+            <div class="meq">= 1 / (2G₁)</div>
+          </div>
+          <div class="m">
+            <div class="ml">Feed inset y₀ from edge</div>
+            <div><span class="mv" id="oY0">—</span> <span class="mu">mm</span></div>
+            <div class="meq">Eq. 14-60</div>
+          </div>
+          <div class="m">
+            <div class="ml">y₀ from centre (L/2−y₀)</div>
+            <div><span class="mv" id="oY0c">—</span> <span class="mu">mm</span></div>
+            <div class="meq">inset depth</div>
+          </div>
+        </div>
+
+        <div class="sec-h">Performance estimates</div>
+        <div class="mg">
+          <div class="m">
+            <div class="ml">Actual resonant fᵣ</div>
+            <div><span class="mv" id="oFr">—</span> <span class="mu">GHz</span></div>
+            <div class="meq">Eq. 14-3</div>
+          </div>
+          <div class="m">
+            <div class="ml">Bandwidth (VSWR ≤ 2)</div>
+            <div><span class="mv" id="oBW">—</span> <span class="mu">%</span></div>
+            <div class="meq">Eq. 14-63</div>
+          </div>
+          <div class="m">
+            <div class="ml">Directivity D₀</div>
+            <div><span class="mv" id="oD0">—</span> <span class="mu">dBi</span></div>
+            <div class="meq">two-slot model</div>
+          </div>
+          <div class="m">
+            <div class="ml">h / λ₀ ratio</div>
+            <div><span class="mv" id="oHL">—</span></div>
+            <div class="meq">thickness check (≤0.1)</div>
+          </div>
+        </div>
+
+        <div id="result-badge"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Equations reference table ─────────────────────── -->
+  <div class="eq-ref">
+    <h2>Equations reference (Balanis, Antenna Theory: Analysis and Design, 3rd ed., Ch. 14)</h2>
+    <table class="eq-table">
+      <thead>
+        <tr>
+          <th>Eq.</th>
+          <th>Expression</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>14-37</td>
+          <td>W = c / (2fᵣ) · √(2 / (εᵣ+1))</td>
+          <td>Optimal patch width for maximum radiation</td>
+        </tr>
+        <tr>
+          <td>14-1</td>
+          <td>εᵣₑff = (εᵣ+1)/2 + (εᵣ−1)/2 · (1+12h/W)^(−½)</td>
+          <td>Effective permittivity — Hammerstad formula</td>
+        </tr>
+        <tr>
+          <td>14-2</td>
+          <td>ΔL/h = 0.412 · (εᵣₑff+0.3)(W/h+0.264) / [(εᵣₑff−0.258)(W/h+0.8)]</td>
+          <td>Length extension due to fringing fields</td>
+        </tr>
+        <tr>
+          <td>14-38/39</td>
+          <td>L = c / (2fᵣ√εᵣₑff) − 2ΔL</td>
+          <td>Actual resonant patch length</td>
+        </tr>
+        <tr>
+          <td>14-3</td>
+          <td>fᵣ = c / [2(L+2ΔL)√εᵣₑff]</td>
+          <td>Actual resonant frequency (verification)</td>
+        </tr>
+        <tr>
+          <td>14-44</td>
+          <td>G₁ = (1/120π²) ∫₀^π [sin(k₀W cosθ/2) / cosθ]² sin³θ dθ</td>
+          <td>Single-slot radiation conductance (numerical)</td>
+        </tr>
+        <tr>
+          <td>14-47</td>
+          <td>G₁₂ = (1/120π²) ∫₀^π [sin(k₀W cosθ/2) / cosθ]² J₀(k₀L sinθ) sin³θ dθ</td>
+          <td>Mutual conductance between radiating slots (numerical, uses J₀)</td>
+        </tr>
+        <tr>
+          <td>14-50</td>
+          <td>Rᵢₙ = 1 / [2(G₁ + G₁₂)]</td>
+          <td>Input resistance at radiating edge — even TM₁₀ mode</td>
+        </tr>
+        <tr>
+          <td>14-60</td>
+          <td>Rᵢₙ(y₀) = Rᵢₙ · cos²(πy₀/L) → y₀ = L/π · arccos(√(Z₀/Rᵢₙ))</td>
+          <td>Coaxial feed inset position for Z₀ impedance match</td>
+        </tr>
+        <tr>
+          <td>14-63</td>
+          <td>BW ≈ 3.77 · (εᵣ−1)/εᵣ² · (W/L) · (h/λ₀)  [× 100%]</td>
+          <td>Fractional bandwidth (VSWR ≤ 2:1, thin substrate approx.)</td>
+        </tr>
+        <tr>
+          <td>—</td>
+          <td>D₀ = W² / (30π λ₀² G₁)</td>
+          <td>Broadside directivity from two-slot model</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Footer ──────────────────────────────────────────── -->
+  <div class="footer">
+    <span>Balanis, C. A. — <em>Antenna Theory: Analysis and Design</em>, 3rd ed., Wiley, 2005.</span>
+    <span>Numerical integration: Simpson's rule (N=2000). Bessel J₀: Abramowitz &amp; Stegun polynomial.</span>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- ──────────────────────────────────────────────────────────
+     JavaScript — All Balanis equations self-contained below
+     ──────────────────────────────────────────────────────── -->
+<script>
+"use strict";
+
+/* ── Numerical integration (Simpson's composite rule) ── */
+function simps(f, a, b, n) {
+  if (n % 2 !== 0) n++;
+  var h = (b - a) / n;
+  var s = f(a) + f(b);
+  for (var i = 1; i < n; i++) {
+    s += (i % 2 === 0 ? 2 : 4) * f(a + i * h);
+  }
+  return (h / 3) * s;
+}
+
+/* ── Bessel function J₀ — Abramowitz & Stegun poly approx ── */
+function J0(x) {
+  var ax = Math.abs(x), y, z, xx, p1, q1;
+  if (ax < 8.0) {
+    y = x * x;
+    return (57568490574.0 + y * (-13362590354.0 + y * (651619640.7 + y *
+            (-11214424.18 + y * (77392.33017 + y * (-184.9052456)))))) /
+           (57568490411.0 + y * (1029532985.0 + y * (9494680.718 + y *
+            (59272.64853 + y * (267.8532712 + y)))));
+  } else {
+    z  = 8.0 / ax;
+    y  = z * z;
+    xx = ax - 0.785398164;
+    p1 = 1.0 + y * (-1.098628627e-3 + y * (2.734510407e-5 + y *
+         (-2.073370639e-6 + y * 2.093887211e-7)));
+    q1 = -1.562499995e-2 + y * (1.430488765e-4 + y * (-6.911147651e-6 + y *
+         (7.621095161e-7 + y * (-9.34945152e-8))));
+    return Math.sqrt(0.636619772 / ax) * (Math.cos(xx) * p1 - z * Math.sin(xx) * q1);
+  }
+}
+
+/* ── Format a number for display ── */
+function fmt(v, d) {
+  if (isNaN(v) || !isFinite(v)) return '—';
+  return v.toFixed(d);
+}
+function setEl(id, v, d) {
+  document.getElementById(id).textContent = fmt(v, d);
+}
+
+/* ── Main calculation ── */
+function calc() {
+  var fr   = parseFloat(document.getElementById('fr').value);
+  var er   = parseFloat(document.getElementById('er').value);
+  var hm   = parseFloat(document.getElementById('hh').value);
+  var Z0   = parseFloat(document.getElementById('z0').value);
+
+  if (!fr || !er || !hm || !Z0 || fr <= 0 || er <= 1.0 || hm <= 0) return;
+
+  var c  = 3e8;          // speed of light (m/s)
+  var pi = Math.PI;
+  var f  = fr * 1e9;     // Hz
+  var h  = hm * 1e-3;    // m
+
+  var lam = c / f;       // free-space wavelength (m)
+  var k0  = 2 * pi / lam;
+
+  /* Eq. 14-37 — Patch width */
+  var W = (c / (2 * f)) * Math.sqrt(2 / (er + 1));
+
+  /* Eq. 14-1 — Effective permittivity (Hammerstad) */
+  var ereff = (er + 1) / 2 + (er - 1) / 2 * Math.pow(1 + 12 * h / W, -0.5);
+
+  /* Eq. 14-2 — Length extension (Schneider / Hammerstad) */
+  var dL = 0.412 * h * (ereff + 0.3) * (W / h + 0.264) /
+           ((ereff - 0.258) * (W / h + 0.8));
+
+  /* Eq. 14-38 / 14-39 — Effective and actual patch length */
+  var Leff = c / (2 * f * Math.sqrt(ereff));
+  var L    = Leff - 2 * dL;
+
+  if (L <= 0) {
+    document.getElementById('status-badge').innerHTML =
+      '<div class="badge badge-err">L ≤ 0 — reduce h or increase εᵣ</div>';
+    document.getElementById('result-badge').innerHTML = '';
+    return;
+  }
+
+  /* Eq. 14-3 — Actual resonant frequency */
+  var fr_actual = c / (2 * (L + 2 * dL) * Math.sqrt(ereff)) / 1e9;
+
+  /* Eq. 14-44 — Single-slot radiation conductance (numerical integration)
+     G₁ = (1/120π²) ∫₀^π [sin(k₀W cosθ / 2) / cosθ]² sin³θ dθ          */
+  var G1 = (1 / (120 * pi * pi)) * simps(function(t) {
+    var ct  = Math.cos(t);
+    var st  = Math.sin(t);
+    var arg = k0 * W / 2 * ct;
+    var f2  = (Math.abs(ct) < 1e-9)
+              ? (k0 * W / 2) * (k0 * W / 2)   // L'Hôpital limit at θ=π/2
+              : Math.pow(Math.sin(arg) / ct, 2);
+    return f2 * st * st * st;
+  }, 1e-9, pi - 1e-9, 2000);
+
+  /* Eq. 14-47 — Mutual conductance (numerical integration with J₀)
+     G₁₂ = (1/120π²) ∫₀^π [sin(k₀W cosθ / 2) / cosθ]² J₀(k₀L sinθ) sin³θ dθ */
+  var G12 = (1 / (120 * pi * pi)) * simps(function(t) {
+    var ct  = Math.cos(t);
+    var st  = Math.sin(t);
+    var arg = k0 * W / 2 * ct;
+    var f2  = (Math.abs(ct) < 1e-9)
+              ? (k0 * W / 2) * (k0 * W / 2)
+              : Math.pow(Math.sin(arg) / ct, 2);
+    return f2 * J0(k0 * L * st) * st * st * st;
+  }, 1e-9, pi - 1e-9, 2000);
+
+  /* Eq. 14-50 — Edge input resistance (even TM₁₀ mode) */
+  var Rin  = 1 / (2 * (G1 + G12));
+  var Rrad = 1 / (2 * G1);
+
+  /* Eq. 14-60 — Coaxial feed inset y₀ for Z₀ match
+     Rᵢₙ(y₀) = Rᵢₙ · cos²(πy₀/L)  →  y₀ = (L/π) · arccos(√(Z₀/Rᵢₙ)) */
+  var y0 = NaN;
+  if (Rin >= Z0) {
+    y0 = (L / pi) * Math.acos(Math.sqrt(Z0 / Rin));
+  }
+
+  /* Eq. 14-63 — Fractional bandwidth (VSWR ≤ 2:1, thin substrate approx.) */
+  var BW = 3.77 * (er - 1) / (er * er) * (W / L) * (h / lam) * 100;
+
+  /* Directivity — two-slot model (broadside)
+     D₀ = W² / (30π λ₀² G₁)                                               */
+  var D0lin = (W * W) / (30 * pi * lam * lam * G1);
+  var D0dB  = 10 * Math.log10(D0lin);
+
+  var hl = h / lam;
+
+  /* ── Update metric cards ── */
+  setEl('oW',     W * 1e3,   2);
+  setEl('oL',     L * 1e3,   2);
+  setEl('oEreff', ereff,     4);
+  setEl('oDL',    dL * 1e3,  4);
+  setEl('oWl',    W / lam,   4);
+  setEl('oLl',    L / lam,   4);
+  setEl('oG1',    G1  * 1e3, 4);
+  setEl('oG12',   G12 * 1e3, 4);
+  setEl('oRin',   Rin,       1);
+  setEl('oRrad',  Rrad,      1);
+  document.getElementById('oY0').textContent  = isNaN(y0) ? 'N/A' : fmt(y0 * 1e3, 2);
+  document.getElementById('oY0c').textContent = isNaN(y0) ? 'N/A' : fmt((L/2 - y0) * 1e3, 2);
+  setEl('oFr',    fr_actual, 4);
+  setEl('oBW',    BW,        2);
+  setEl('oD0',    D0dB,      2);
+  setEl('oHL',    hl,        4);
+
+  /* ── Status messages ── */
+  var sb = document.getElementById('status-badge');
+  var rb = document.getElementById('result-badge');
+  sb.innerHTML = '';
+
+  if (hl > 0.1) {
+    sb.innerHTML = '<div class="badge badge-warn">h/λ₀ = ' + hl.toFixed(3) +
+      ' > 0.1 — thick substrate; accuracy of transmission-line model is reduced</div>';
+  }
+
+  if (isNaN(y0)) {
+    rb.innerHTML = '<div class="badge badge-warn">Rᵢₙ (' + Rin.toFixed(0) +
+      ' Ω) < Z₀ (' + Z0 + ' Ω) — no real inset y₀ exists for this match</div>';
+  } else {
+    rb.innerHTML = '<div class="badge badge-ok">' + Z0 + ' Ω match at y₀ = ' +
+      fmt(y0 * 1e3, 2) + ' mm from radiating edge (' +
+      fmt((L/2 - y0)*1e3, 2) + ' mm from centre)</div>';
+  }
+
+  /* ── Update SVG diagram ── */
+  updateSVG(W * 1e3, L * 1e3, isNaN(y0) ? null : y0 * 1e3);
+}
+
+/* ── Update top-view patch SVG ── */
+function updateSVG(Wmm, Lmm, y0mm) {
+  var pX = 22, pW = 176;  // SVG x-range for patch (L direction is horizontal)
+  var pCy = 24 + 82 / 2;  // vertical centre of patch
+
+  document.getElementById('p-W-lbl').textContent = 'W = ' + Wmm.toFixed(1) + ' mm';
+  document.getElementById('p-L-lbl').textContent = 'L = ' + Lmm.toFixed(1) + ' mm';
+
+  if (y0mm !== null && Lmm > 0) {
+    var frac = y0mm / Lmm;
+    var fx   = pX + frac * pW;
+
+    document.getElementById('p-feed-v').setAttribute('x1', fx);
+    document.getElementById('p-feed-v').setAttribute('x2', fx);
+    document.getElementById('p-feed-v').style.display = '';
+
+    document.getElementById('p-feed-dot').setAttribute('cx', fx);
+    document.getElementById('p-feed-dot').setAttribute('cy', pCy);
+    document.getElementById('p-feed-dot').style.display = '';
+
+    document.getElementById('p-feed-txt').setAttribute('x', fx);
+    document.getElementById('p-feed-txt').style.display = '';
+
+    document.getElementById('p-y0-line').setAttribute('x1', pX);
+    document.getElementById('p-y0-line').setAttribute('x2', Math.max(pX, fx - 5));
+    document.getElementById('p-y0-line').style.display = '';
+
+    document.getElementById('p-y0-arr').setAttribute('points',
+      (fx-4)+',109 '+(fx)+',112 '+(fx-4)+',115');
+    document.getElementById('p-y0-arr').style.display = '';
+
+    var lblX = (pX + fx) / 2;
+    document.getElementById('p-y0-lbl').setAttribute('x', lblX);
+    document.getElementById('p-y0-lbl').textContent = 'y\u2080 = ' + y0mm.toFixed(1) + ' mm';
+    document.getElementById('p-y0-lbl').style.display = '';
+  } else {
+    ['p-feed-v','p-feed-dot','p-feed-txt',
+     'p-y0-line','p-y0-arr','p-y0-lbl'].forEach(function(id) {
+      document.getElementById(id).style.display = 'none';
+    });
+  }
+}
+
+/* ── Apply substrate preset ── */
+function applyPreset() {
+  var v = document.getElementById('preset').value;
+  if (!v) return;
+  var p = v.split(',');
+  document.getElementById('er').value   = p[0];
+  document.getElementById('hh').value   = p[1];
+  document.getElementById('tand').value = p[2];
+  calc();
+}
+
+/* ── Run on load ── */
+calc();
+</script>
+</body>
+</html>
